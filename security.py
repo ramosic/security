@@ -5,56 +5,55 @@
 # Copyright (c) 2023, Christer Karlsen
 # License: MIT License
 #
-import subprocess
+#!/usr/bin/env python3
 
-def run_command(command):
-    result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    return result.stdout.decode('utf-8')
+import os
+from tqdm import tqdm
 
-# Update the package manager
-run_command("sudo apt-get update")
+# update and upgrade the system
+os.system('sudo apt update')
+os.system('sudo apt upgrade')
 
-# Upgrade the system packages
-run_command("sudo apt-get upgrade -y")
+# lock down SSH
+os.system('sudo sed -i "s/#PermitRootLogin prohibit-password/PermitRootLogin no/g" /etc/ssh/sshd_config')
+os.system('sudo sed -i "s/PasswordAuthentication yes/PasswordAuthentication no/g" /etc/ssh/sshd_config')
+os.system('sudo systemctl restart sshd')
 
-# Install the firewall (UFW)
-run_command("sudo apt-get install ufw -y")
+# enable firewall and allow SSH
+os.system('sudo ufw enable')
+os.system('sudo ufw default deny incoming')
+os.system('sudo ufw default allow outgoing')
+os.system('sudo ufw allow ssh')
 
-# Enable the firewall
-run_command("sudo ufw enable")
+# install fail2ban and enable it
+os.system('sudo apt install fail2ban')
+os.system('sudo systemctl enable fail2ban')
 
-# Allow SSH traffic
-run_command("sudo ufw allow ssh")
+# other suggested tasks
+# install and configure an antivirus program like ClamAV
+os.system('sudo apt install clamav')
+os.system('sudo freshclam')
 
-# Deny all incoming traffic by default
-run_command("sudo ufw default deny incoming")
+# install and configure a web application firewall like ModSecurity
+os.system('sudo apt install libapache2-mod-security2')
+os.system('sudo mv /etc/modsecurity/modsecurity.conf-recommended /etc/modsecurity/modsecurity.conf')
+os.system('sudo systemctl restart apache2')
 
-# Allow all outgoing traffic
-run_command("sudo ufw default allow outgoing")
+# disable unnecessary services and daemons
+os.system('sudo systemctl stop bluetooth')
+os.system('sudo systemctl disable bluetooth')
+os.system('sudo systemctl stop cups')
+os.system('sudo systemctl disable cups')
 
-# Check the firewall status
-firewall_status = run_command("sudo ufw status")
-print("Firewall status:", firewall_status)
+# install and configure a backup solution
+os.system('sudo apt install rsync')
+os.system('sudo mkdir /backup')
+os.system('sudo chown -R $USER:$USER /backup')
+os.system('sudo chmod -R 700 /backup')
 
-# Update the SSH configuration
-sshd_config = """
-# SSH security configuration
+# add progress bar
+tasks = ['update and upgrade the system', 'lock down SSH', 'enable firewall and allow SSH', 'install fail2ban and enable it', 'install and configure an antivirus program like ClamAV', 'install and configure a web application firewall like ModSecurity', 'disable unnecessary services and daemons', 'install and configure a backup solution']
+for task in tqdm(tasks):
+    print(task)
 
-# Disable root login
-PermitRootLogin no
-
-# Disable password authentication
-PasswordAuthentication no
-
-# Use only key-based authentication
-PubkeyAuthentication yes
-
-# Specify the SSH port
-Port 22
-"""
-with open("/etc/ssh/sshd_config", "w") as file:
-    file.write(sshd_config)
-
-# Restart the SSH service
-run_command("sudo systemctl restart ssh")
 
